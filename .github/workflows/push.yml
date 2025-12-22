@@ -26,11 +26,53 @@ jobs:
         echo "CURRENT_BRANCH2=gloriachen09:${GITHUB_REF##*/}" >> $GITHUB_ENV
         # echo "PULL_REQUEST_FROM_BRANCH=$(date '+gloriachen09:main_sync_%Y%m%d')" >> $GITHUB_ENV
         # echo "PULL_REQUEST_FROM_BRANCH=gloriachen09:${GITHUB_REF##*/}" >> $GITHUB_ENV
-    - name: Get current commit message
+    - name: Construct PR Body with File Changes
+      id: pr_body_step
       run: |
-        COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-        echo "Commit message is: $COMMIT_MESSAGE"
-        echo "PULL_REQUEST_BODY=$COMMIT_MESSAGE" >> $GITHUB_ENV
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          echo "Commit message: $COMMIT_MESSAGE"
+
+          TARGET_BRANCH="origin/main"
+          
+          ADDED_FILES=$(git diff --name-only --diff-filter=A $TARGET_BRANCH HEAD)
+          DELETED_FILES=$(git diff --name-only --diff-filter=D $TARGET_BRANCH HEAD)
+          
+          # 只有当列表不为空时才拼接代码块
+          FILE_CHANGE_TEXT="
+          
+          ### 📂 File Changes
+          "
+          
+          if [ -n "$ADDED_FILES" ]; then
+            FILE_CHANGE_TEXT="${FILE_CHANGE_TEXT}
+          **Additions:**
+          \`\`\`
+          ${ADDED_FILES}
+          \`\`\`
+          "
+          else
+            FILE_CHANGE_TEXT="${FILE_CHANGE_TEXT}
+          **Additions:** None
+          "
+          fi
+          
+          if [ -n "$DELETED_FILES" ]; then
+            FILE_CHANGE_TEXT="${FILE_CHANGE_TEXT}
+          **Deletions:**
+          \`\`\`
+          ${DELETED_FILES}
+          \`\`\`
+          "
+          else
+            FILE_CHANGE_TEXT="${FILE_CHANGE_TEXT}
+          **Deletions:** None
+          "
+          fi
+
+          echo "PULL_REQUEST_BODY<<EOF" >> $GITHUB_ENV
+          echo "$COMMIT_MESSAGE" >> $GITHUB_ENV
+          echo "$FILE_CHANGE_TEXT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
     - name: pull-request-action
       id: pull_request
       # uses: vsoch/pull-request-action@v1
@@ -45,9 +87,10 @@ jobs:
         PULL_REQUEST_FROM_BRANCH: "gloriachen09:main"
         PULL_REQUEST_BRANCH: "main"
         PULL_REQUEST_REPOSITORY: chenYayaya/test-repo
-        PULL_REQUEST_REVIEWERS: chenYayaya,gloriachen09
+        PULL_REQUEST_REVIEWERS: chenYayaya gloriachen09
         PASS_IF_EXISTS: true
         PULL_REQUEST_UPDATE: true
+        PULL_REQUEST_BODY: ${{ env.PULL_REQUEST_BODY }}
     - name: Test outputs
       env:
         pull_request_number_output: ${{ steps.pull_request.outputs.pull_request_number }}
