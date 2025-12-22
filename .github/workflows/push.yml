@@ -34,7 +34,12 @@ jobs:
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           echo "Commit message: $COMMIT_MESSAGE"
 
-          TARGET_BRANCH="origin/main"
+          TARGET_REPO_URL="https://github.com/chenYayaya/test-repo.git"
+          git remote add upstream_target $TARGET_REPO_URL
+          git fetch upstream_target main
+          TARGET_BRANCH="upstream_target/main"
+
+          echo "Diffing against $TARGET_BRANCH..."
           
           ADDED_FILES=$(git diff --name-only --diff-filter=A $TARGET_BRANCH HEAD)
           DELETED_FILES=$(git diff --name-only --diff-filter=D $TARGET_BRANCH HEAD)
