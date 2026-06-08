@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     - uses: actions/setup-python@v5
       with:
         python-version: '3.11'
@@ -32,7 +34,12 @@ jobs:
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           echo "Commit message: $COMMIT_MESSAGE"
 
-          TARGET_BRANCH="origin/main"
+          TARGET_REPO_URL="https://github.com/chenYayaya/test-repo.git"
+          git remote add upstream_target $TARGET_REPO_URL
+          git fetch upstream_target main
+          TARGET_BRANCH="upstream_target/main"
+
+          echo "Diffing against $TARGET_BRANCH..."
           
           ADDED_FILES=$(git diff --name-only --diff-filter=A $TARGET_BRANCH HEAD)
           DELETED_FILES=$(git diff --name-only --diff-filter=D $TARGET_BRANCH HEAD)
@@ -87,7 +94,7 @@ jobs:
         PULL_REQUEST_FROM_BRANCH: "gloriachen09:main"
         PULL_REQUEST_BRANCH: "main"
         PULL_REQUEST_REPOSITORY: chenYayaya/test-repo
-        PULL_REQUEST_REVIEWERS: chenYayaya gloriachen09
+        PULL_REQUEST_REVIEWERS: chenYayaya
         PASS_IF_EXISTS: true
         PULL_REQUEST_UPDATE: true
         PULL_REQUEST_BODY: ${{ env.PULL_REQUEST_BODY }}
